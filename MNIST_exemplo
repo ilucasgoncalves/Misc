@@ -1,0 +1,107 @@
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+
+#Configuracao de sistema para processamento em GPU 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Hyper-parametros 
+input_size = 784 # 28x28
+hidden_size = 500 
+num_classes = 10
+num_epochs = 2
+batch_size = 100
+learning_rate = 0.001
+
+# MNIST 
+train_dataset = torchvision.datasets.MNIST(root='./data', 
+                                           train=True, 
+                                           transform=transforms.ToTensor(),  
+                                           download=True)
+
+test_dataset = torchvision.datasets.MNIST(root='./data', 
+                                          train=False, 
+                                          transform=transforms.ToTensor())
+
+# carregador de dados (DATALOADER)
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
+                                           batch_size=batch_size, 
+                                           shuffle=True)
+
+test_loader = torch.uty
+ils.data.DataLoader(dataset=test_dataset, 
+                                          batch_size=batch_size, 
+                                          shuffle=False)
+
+examples = iter(test_loader)
+example_data, example_targets = examples.next()
+
+for i in range(6):
+    plt.subplot(2,3,i+1)
+    plt.imshow(example_data[i][0], cmap='gray')
+plt.show()
+
+# Rede neural conectada com dois layeres oclusos
+class NeuralNet(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(NeuralNet, self).__init__()
+        self.input_size = input_size
+        self.l1 = nn.Linear(input_size, hidden_size) 
+        self.relu = nn.ReLU()
+        self.l2 = nn.Linear(hidden_size, num_classes)  
+    
+    def forward(self, x):
+        out = self.l1(x)
+        out = self.relu(out)
+        out = self.l2(out)
+        # no activation and no softmax at the end
+        return out
+
+model = NeuralNet(input_size, hidden_size, num_classes).to(device)
+
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)  
+
+# Treinando o Modelo
+n_total_steps = len(train_loader)
+for epoch in range(num_epochs):
+    for i, (imagens, rotulos) in enumerate(train_loader):  
+        # formato original: [100, 1, 28, 28]
+        # alteracao de formato vetores: [100, 784]
+        imagens = imagens.reshape(-1, 28*28).to(device)
+        rotulos = rotulos.to(device)
+        
+        # Fazendo previsoes com os pesos atuais 
+	# e comparando com resultados esperados
+        previsao = model(imagens)
+        loss = criterion(previsao, rotulos)
+        
+        # Voltando pela rede neural e optimizando
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        if (i+1) % 100 == 0:
+            print (f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{n_total_steps}], Loss: {loss.item():.4f}')
+
+# Testando o Model
+# Na hora de testar a rede neural nao precisamos atualizar
+# os pesos e bias mais entao nao precisamos calcular
+#os gradients da rede
+with torch.no_grad():
+    n_corretos = 0
+    n_dados = 0
+    for imagens, rotulos in test_loader:
+        imagens = imagens.reshape(-1, 28*28).to(device)
+        rotulos = rotulos.to(device)
+        outputs = model(imagens)
+        # max returns (value ,index)
+        _, previsao = torch.max(outputs.data, 1)
+        n_dados += rotulos.size(0)
+        n_corretos += (previsao == rotulos).sum().item()
+
+    precisao = 100.0 * n_corretos / n_dados
+    print(f'Precisao da rede neural testada em 10000 imagens: {precisao} %')
